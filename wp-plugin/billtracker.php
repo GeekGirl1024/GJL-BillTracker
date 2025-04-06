@@ -1,12 +1,12 @@
 <?php
 /**
  * Plugin Name: Bill Tracker Plugin
- * Plugin URI: https://example.com
- * Description: A plugin to display JSON data from the database.
+ * Plugin URI: https://github.com/GeekGirl1024/GJL-BillTracker
+ * Description: A Wordpress plugin to display Bill Information.
  * Version: 1.0
  * Author: Sophia Lee
- * Author URI: https://example.com
- * License: GPL2
+ * Author URI: https://www.sophialee.dev
+ * License: MIT License
  */
 
  // Add an admin menu for the Bill Tracker plugin
