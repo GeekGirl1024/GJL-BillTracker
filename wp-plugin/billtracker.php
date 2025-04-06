@@ -264,7 +264,9 @@ function display_bills() {
         return $a['sort'] <=> $b['sort'];
     });
 
-    $output = '<table class="widefat fixed bills" cellspacing="0" style="">';
+    $output = '<script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+
+    <table class="widefat fixed bills" cellspacing="0" style="">';
     $output .= '<tbody>';
 
     // Loop through the bills and add rows to the table
@@ -287,6 +289,23 @@ function display_bills() {
 
     $output .= '</tbody>';
     $output .= '</table>';
+    $output .= '<div><button class="download">Download Image</button></div>';
+    $output .= '
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const downloadButton = document.querySelector("button.download");
+
+                downloadButton.addEventListener("click", function (event) {
+                    htmlToImage.toJpeg(document.querySelector("table.bills tbody"), { quality: 0.95 })
+                        .then(function (dataUrl) {
+                            var link = document.createElement("a");
+                            link.download = "gjl-bills.jpeg";
+                            link.href = dataUrl;
+                            link.click();
+                        });
+                });
+            });
+        </script>';
 
     $output .= get_bills_css();
 
