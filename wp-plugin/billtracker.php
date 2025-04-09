@@ -50,7 +50,7 @@ function billtracker_admin_page() {
             <table class="form-table">
                 <tr>
                     <th><label for="name">Name</label></th>
-                    <td><input type="text" name="name" id="name" value="<?php echo isset($bill_to_edit) ? esc_attr($bill_to_edit['name']) : ''; ?>" required></td>
+                    <td><input type="text" name="name" id="name" value="<?php echo isset($bill_to_edit) ? esc_attr(stripslashes($bill_to_edit['name'])) : ''; ?>" required></td>
                 </tr>
                 <tr>
                     <th><label for="category">Category</label></th>
@@ -61,8 +61,8 @@ function billtracker_admin_page() {
                             // Get existing categories from the bills
                             $existing_categories = array_unique(array_column($bills, 'category'));
                             foreach ($existing_categories as $existing_category): ?>
-                                <option value="<?php echo esc_attr($existing_category); ?>" <?php echo isset($bill_to_edit) && $bill_to_edit['category'] === $existing_category ? 'selected' : ''; ?>>
-                                    <?php echo esc_html($existing_category); ?>
+                                <option value="<?php echo esc_attr(stripslashes($existing_category)); ?>" <?php echo isset($bill_to_edit) && $bill_to_edit['category'] === $existing_category ? 'selected' : ''; ?>>
+                                    <?php echo esc_html(stripslashes($existing_category)); ?>
                                 </option>
                             <?php endforeach; ?>
                             <option value="new">Add New Category</option>
@@ -109,8 +109,8 @@ function billtracker_admin_page() {
                 <?php $index = 0;
                     foreach ($bills as $row): ?>
                     <tr>
-                        <td><?php echo esc_html($row['name']); ?></td>
-                        <td><?php echo esc_html($row['category']); ?></td>
+                        <td><?php echo esc_html(stripslashes($row['name'])); ?></td>
+                        <td><?php echo esc_html(stripslashes($row['category'])); ?></td>
                         <td><?php echo esc_html($row['house']); ?></td>
                         <td><?php echo esc_html($row['senate']); ?></td>
                         <td><?php echo esc_html($row['passage']); ?></td>
@@ -275,15 +275,15 @@ function display_bills() {
         if ($category != $bill['category'] ) {
             $category = $bill['category'];
             $output .= '<tr class="category" style="">';
-            $output .= '<td colspan="5" style="">CATEGORY: ' . esc_html($bill['category']) . '</td>';
+            $output .= '<td colspan="5" style="">' . esc_html(stripslashes($category)) . '</td>';
             $output .= '</tr>';
         }
         $output .=
         '<tr class="name" style="">
-            <td colspan="5" style=""> Name: ' . esc_html($bill['name']) . '</td>
+            <td colspan="5" style="">' . esc_html(stripslashes($bill['name'])) . '</td>
         </tr>';
-        $output .= get_chamber_info("House", "house", ['Introduced', 'In Chamber', 'On Floor', 'Passed'], $bill['house']);
-        $output .= get_chamber_info("Senate", "senate", ['Introduced', 'In Chamber', 'On Floor', 'Passed'], $bill['senate']);
+        $output .= get_chamber_info("House", "house", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['house']);
+        $output .= get_chamber_info("Senate", "senate", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['senate']);
         $output .= get_chamber_info("Passage", "passage", ['Passed Legislature', 'Governor\'s Desk', 'Governor Acted', 'Session Law'], $bill['passage']);
     }
 
