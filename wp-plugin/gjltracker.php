@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Bill Tracker Plugin
+ * Plugin Name: GJL Tracker Plugin
  * Plugin URI: https://github.com/GeekGirl1024/GJL-BillTracker
- * Description: A Wordpress plugin to display Bill Information.
- * Version: 1.0
+ * Description: A Wordpress plugin to display Bills or Lawsuits Information.
+ * Version: 1.1
  * Author: Sophia Lee
  * Author URI: https://www.sophialee.dev
  * License: MIT License
@@ -100,6 +100,11 @@ function lawsuittracker_admin_page() {
                         </select>
                         <input type="text" name="new_category" id="new_category" placeholder="Enter new category" style="display:none;" />
                     </td>
+                </tr>
+                <tr>
+                    <th><label for="url">URL</label></th>
+                    <td><input type="url" name="url" id="url" value="<?php echo isset($lawsuit_to_edit) ? esc_attr($lawsuit_to_edit['url']) : ''; ?>" placeholder="Enter a URL"></td>
+                </tr>
                 <tr>
                     <th><label for="stage">Stage</label></th>
                     <td><input type="number" name="stage" id="stage" value="<?php echo isset($lawsuit_to_edit) ? esc_attr($lawsuit_to_edit['stage']) : ''; ?>" required></td>
@@ -120,6 +125,7 @@ function lawsuittracker_admin_page() {
                 <tr>
                     <th>Name</th>
                     <th>Category</th>
+                    <th>URL</th>
                     <th>Stage</th>
                     <th>Sort</th>
                     <th>Actions</th>
@@ -132,6 +138,7 @@ function lawsuittracker_admin_page() {
                     <tr>
                         <td><?php echo esc_html(stripslashes($row['name'])); ?></td>
                         <td><?php echo esc_html(stripslashes($row['category'])); ?></td>
+                        <td><a href="<?php echo esc_url($row['url']); ?>" target="_blank"><?php echo esc_html($row['url']); ?></a></td>
                         <td><?php echo esc_html($row['stage']); ?></td>
                         <td><?php echo esc_html($row['sort']); ?></td>
                         <td>
@@ -180,6 +187,7 @@ function lawsuittracker_admin_do_updates()  {
         $lawsuits[] = [
             'name' => sanitize_text_field($_POST['name']),
             'category' => $category,
+            'url' => esc_url_raw($_POST['url']),
             'stage' => intval($_POST['stage']),
             'sort' => intval($_POST['sort']),
         ];
@@ -201,6 +209,7 @@ function lawsuittracker_admin_do_updates()  {
         $lawsuits[$edit_index] = [
             'name' => sanitize_text_field($_POST['name']),
             'category' => $category,
+            'url' => esc_url_raw($_POST['url']),
             'stage' => intval($_POST['stage']),
             'sort' => intval($_POST['sort']),
         ];
@@ -272,6 +281,11 @@ function billtracker_admin_page() {
                         </select>
                         <input type="text" name="new_category" id="new_category" placeholder="Enter new category" style="display:none;" />
                     </td>
+                </tr>
+                <tr>
+                    <th><label for="url">URL</label></th>
+                    <td><input type="url" name="url" id="url" value="<?php echo isset($bill_to_edit) ? esc_attr($bill_to_edit['url']) : ''; ?>" placeholder="Enter a URL"></td>
+                </tr>
                 <tr>
                     <th><label for="house">House</label></th>
                     <td><input type="number" name="house" id="house" value="<?php echo isset($bill_to_edit) ? esc_attr($bill_to_edit['house']) : ''; ?>" required></td>
@@ -300,6 +314,7 @@ function billtracker_admin_page() {
                 <tr>
                     <th>Name</th>
                     <th>Category</th>
+                    <th>Url</th>
                     <th>House</th>
                     <th>Senate</th>
                     <th>Passage</th>
@@ -314,6 +329,7 @@ function billtracker_admin_page() {
                     <tr>
                         <td><?php echo esc_html(stripslashes($row['name'])); ?></td>
                         <td><?php echo esc_html(stripslashes($row['category'])); ?></td>
+                        <td><a href="<?php echo esc_url($row['url']); ?>" target="_blank"><?php echo esc_html($row['url']); ?></a></td>
                         <td><?php echo esc_html($row['house']); ?></td>
                         <td><?php echo esc_html($row['senate']); ?></td>
                         <td><?php echo esc_html($row['passage']); ?></td>
@@ -413,6 +429,7 @@ function billtracker_admin_do_updates() {
         $bills[] = [
             'name' => sanitize_text_field($_POST['name']),
             'category' => $category,
+            'url' => esc_url_raw($_POST['url']),
             'house' => intval($_POST['house']),
             'senate' => intval($_POST['senate']),
             'passage' => intval($_POST['passage']),
@@ -436,6 +453,7 @@ function billtracker_admin_do_updates() {
         $bills[$edit_index] = [
             'name' => sanitize_text_field($_POST['name']),
             'category' => $category,
+            'url' => esc_url_raw($_POST['url']),
             'house' => intval($_POST['house']),
             'senate' => intval($_POST['senate']),
             'passage' => intval($_POST['passage']),
@@ -489,9 +507,12 @@ function display_bills() {
             $output .= '<td colspan="5" style="">' . esc_html(stripslashes($category)) . '</td>';
             $output .= '</tr>';
         }
+
+        $name_link = !empty($bill['url']) ? '<a href="' . esc_url($bill['url']) . '" target="_blank">' . esc_html(stripslashes($bill['name'])) . '</a>' : esc_html(stripslashes($bill['name']));
+
         $output .=
         '<tr class="name" style="">
-            <td colspan="5" style="">' . esc_html(stripslashes($bill['name'])) . '</td>
+            <td colspan="5" style="">' . $name_link . '</td>
         </tr>';
         $output .= get_steps_info("House", "house", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['house']);
         $output .= get_steps_info("Senate", "senate", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['senate']);
@@ -546,9 +567,11 @@ function display_lawsuits() {
             $output .= '<td colspan="5" style="">' . esc_html(stripslashes($category)) . '</td>';
             $output .= '</tr>';
         }
+
+        $name_link = !empty($lawsuit['url']) ? '<a href="' . esc_url($lawsuit['url']) . '" target="_blank">' . esc_html(stripslashes($lawsuit['name'])) . '</a>' : esc_html(stripslashes($lawsuit['name']));
         $output .=
         '<tr class="name" style="">
-            <td colspan="5" style="">' . esc_html(stripslashes($lawsuit['name'])) . '</td>
+            <td colspan="5" style="">' . $name_link . '</td>
         </tr>';
         $output .= get_steps_info("", "stage", ['Filed', 'In Court', 'Ruling Issued', 'Appealed', 'Resolved'], $lawsuit['stage']);
     }
@@ -596,6 +619,11 @@ function get_bills_css() {
         table.bills tr.name {
             background-color:#A21C1F;
             color:white;
+        }
+
+        table.bills tr.name a {
+            color:white;
+            text-decoration: underline;
         }
 
         table.bills tr.house {
@@ -713,6 +741,11 @@ function get_lawsuits_css() {
         table.lawsuits tr.name {
             background-color:#A21C1F;
             color:white;
+        }
+
+        table.lawsuits tr.name a {
+            color:white;
+            text-decoration: underline;
         }
 
         table.lawsuits tr.stage {
