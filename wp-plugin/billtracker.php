@@ -13,16 +13,219 @@
 
 function billtracker_admin_menu() {
     add_menu_page(
-        'Bill Tracker', // Page title
-        'Bill Tracker', // Menu title
+        'Tracker', // Page title
+        'Tracker', // Menu title
         'manage_options', // Capability
-        'billtracker', // Menu slug
-        'billtracker_admin_page', // Callback function
+        'tracker', // Menu slug
+        'tracker_admin_page', // Callback function
         'dashicons-list-view', // Icon
         20 // Position
     );
+
+    add_submenu_page(
+        'tracker', // Parent slug
+        'Bill Tracker', // Page title
+        'Bill Tracker', // Menu title
+        'manage_options', // Capability
+        'tracker_billtracker', // Menu slug
+        'billtracker_admin_page' // Callback function
+    );
+
+    add_submenu_page(
+        'tracker', // Parent slug
+        'Lawsuit Tracker', // Page title
+        'Lawsuit Tracker', // Menu title
+        'manage_options', // Capability
+        'tracker_lawsuittracker', // Menu slug
+        'lawsuittracker_admin_page' // Callback function
+    );
 }
 add_action('admin_menu', 'billtracker_admin_menu');
+
+function tracker_admin_page() {
+    ?>
+
+    <div class="wrap">
+        <h1>GJL Tracker</h1>
+        
+
+        
+    </div>
+
+    <?php
+
+}
+
+function lawsuittracker_admin_page() {
+    lawsuittracker_admin_do_updates();
+
+    // Fetch all records from the custom table
+    $lawsuits = (get_option('lawsuittracker_data', []));
+    usort($lawsuits, function ($a, $b) {
+        return $a['sort'] <=> $b['sort'];
+    });
+
+    // Display the admin page
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lawsuittracker_edit'])) {
+        $edit_index = intval($_POST['edit_index']);
+        $lawsuit_to_edit = $lawsuits[$edit_index] ?? null;
+    }
+    ?>
+    
+    <div class="wrap">
+        <h1>Lawsuit Tracker</h1>
+        <h2><?php echo isset($lawsuit_to_edit) ? 'Edit Lawsuit' : 'Add New Lawsuit'; ?></h2>
+        <form method="POST">
+            <input type="hidden" name="edit_index" value="<?php echo isset($lawsuit_to_edit) ? esc_attr($edit_index) : ''; ?>">
+            <table class="form-table">
+                <tr>
+                    <th><label for="name">Name</label></th>
+                    <td><input type="text" name="name" id="name" value="<?php echo isset($lawsuit_to_edit) ? esc_attr(stripslashes($lawsuit_to_edit['name'])) : ''; ?>" required></td>
+                </tr>
+                <tr>
+                    <th><label for="category">Category</label></th>
+                    <td>
+                        <select name="category" id="category" onchange="toggleNewCategoryInput(this)">
+                            <option value="">Select a Category</option>
+                            <?php
+                            // Get existing categories from the lawsuits
+                            $existing_categories = array_unique(array_column($lawsuits, 'category'));
+                            foreach ($existing_categories as $existing_category): ?>
+                                <option value="<?php echo esc_attr(stripslashes($existing_category)); ?>" <?php echo isset($lawsuit_to_edit) && $lawsuit_to_edit['category'] === $existing_category ? 'selected' : ''; ?>>
+                                    <?php echo esc_html(stripslashes($existing_category)); ?>
+                                </option>
+                            <?php endforeach; ?>
+                            <option value="new">Add New Category</option>
+                        </select>
+                        <input type="text" name="new_category" id="new_category" placeholder="Enter new category" style="display:none;" />
+                    </td>
+                <tr>
+                    <th><label for="stage">Stage</label></th>
+                    <td><input type="number" name="stage" id="stage" value="<?php echo isset($lawsuit_to_edit) ? esc_attr($lawsuit_to_edit['stage']) : ''; ?>" required></td>
+                </tr>
+                <tr>
+                    <th><label for="passage">Sort</label></th>
+                    <td><input type="number" name="sort" id="sort" value="<?php echo isset($lawsuit_to_edit) ? esc_attr($lawsuit_to_edit['sort']) : ''; ?>" required></td>
+                </tr>
+            </table>
+            <p>
+                <input type="submit" name="<?php echo isset($lawsuit_to_edit) ? 'lawsuittracker_update' : 'lawsuittracker_add'; ?>" class="button button-primary" value="<?php echo isset($lawsuit_to_edit) ? 'Update Lawsuit' : 'Add Lawsuit'; ?>">
+            </p>
+        </form>
+
+        <h2>Existing Lawsuits</h2>
+        <table class="widefat fixed" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Stage</th>
+                    <th>Sort</th>
+                    <th>Actions</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+                <?php $index = 0;
+                    foreach ($lawsuits as $row): ?>
+                    <tr>
+                        <td><?php echo esc_html(stripslashes($row['name'])); ?></td>
+                        <td><?php echo esc_html(stripslashes($row['category'])); ?></td>
+                        <td><?php echo esc_html($row['stage']); ?></td>
+                        <td><?php echo esc_html($row['sort']); ?></td>
+                        <td>
+                            <form method="POST" style="display:inline;">
+                                <input type="hidden" name="edit_index" value="<?php echo esc_attr($index); ?>">
+                                <input type="submit" name="lawsuittracker_edit" class="button" value="Edit">
+                            </form>
+                            <form method="POST" style="display:inline;">
+                                <input type="hidden" name="delete_index" value="<?php echo esc_attr($index); ?>">
+                                <input type="submit" name="tracker_delete" class="button button-danger" value="Delete">
+                            </form>
+                        </td>
+                    </tr>
+                <?php
+                    $index++;
+                    endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    
+    <?php
+
+    admin_javascript();
+
+}
+
+function lawsuittracker_admin_do_updates()  {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        return;
+    }
+    // Handle form submissions for adding new records
+    if (isset($_POST['lawsuittracker_add'])) {
+        $lawsuits = get_option('lawsuittracker_data', []); // Retrieve existing data
+        usort($lawsuits, function ($a, $b) {
+            return $a['sort'] <=> $b['sort'];
+        });
+        $lawsuits = is_array($lawsuits) ? $lawsuits : []; // Ensure it's an array
+
+        $category = sanitize_text_field($_POST['category']);
+        if ($category === 'new') {
+            $category = sanitize_text_field($_POST['new_category']);
+        }
+
+        // Add the new bill to the array
+        $lawsuits[] = [
+            'name' => sanitize_text_field($_POST['name']),
+            'category' => $category,
+            'stage' => intval($_POST['stage']),
+            'sort' => intval($_POST['sort']),
+        ];
+
+        // Save the updated data
+        update_option('lawsuittracker_data', $lawsuits);
+
+        echo '<div class="updated"><p>Record added successfully!</p></div>';
+    } else if (isset($_POST['lawsuittracker_update'])) {
+        $edit_index = intval($_POST['edit_index']);
+        $lawsuits = (get_option('lawsuittracker_data', []));
+        usort($lawsuits, function ($a, $b) {
+            return $a['sort'] <=> $b['sort'];
+        });
+        $category = sanitize_text_field($_POST['category']);
+        if ($category === 'new') {
+            $category = sanitize_text_field($_POST['new_category']);
+        }
+        $lawsuits[$edit_index] = [
+            'name' => sanitize_text_field($_POST['name']),
+            'category' => $category,
+            'stage' => intval($_POST['stage']),
+            'sort' => intval($_POST['sort']),
+        ];
+        update_option('lawsuittracker_data', $lawsuits);
+    
+        echo '<div class="updated"><p>Record updated successfully!</p></div>';
+    } else if (isset($_POST['tracker_delete'])) {
+        $delete_index = intval($_POST['delete_index']);
+        $lawsuits = (get_option('lawsuittracker_data', []));
+        usort($lawsuits, function ($a, $b) {
+            return $a['sort'] <=> $b['sort'];
+        });
+    
+        // Remove the selected bill from the array
+        if (isset($lawsuits[$delete_index])) {
+            unset($lawsuits[$delete_index]);
+            $lawsuits = array_values($lawsuits); // Reindex the array
+            update_option('billtracker_data', $lawsuits);
+    
+            echo '<div class="updated"><p>Record deleted successfully!</p></div>';
+        } else {
+            echo '<div class="error"><p>Failed to delete the record. Record not found.</p></div>';
+        }
+    }
+}
 
 // Render the admin page
 function billtracker_admin_page() {
@@ -122,7 +325,7 @@ function billtracker_admin_page() {
                             </form>
                             <form method="POST" style="display:inline;">
                                 <input type="hidden" name="delete_index" value="<?php echo esc_attr($index); ?>">
-                                <input type="submit" name="billtracker_delete" class="button button-danger" value="Delete">
+                                <input type="submit" name="tracker_delete" class="button button-danger" value="Delete">
                             </form>
                         </td>
                     </tr>
@@ -133,10 +336,18 @@ function billtracker_admin_page() {
         </table>
     </div>
 
+    
+    <?php
+
+    admin_javascript();
+}
+
+function admin_javascript() {
+    ?>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Add a confirmation dialog to all delete buttons
-            const deleteButtons = document.querySelectorAll('input[name="billtracker_delete"]');
+            const deleteButtons = document.querySelectorAll('input[name="tracker_delete"]');
             deleteButtons.forEach(function (button) {
                 button.addEventListener('click', function (event) {
                     const confirmed = confirm('Are you sure you want to delete this bill?');
@@ -233,7 +444,7 @@ function billtracker_admin_do_updates() {
         update_option('billtracker_data', $bills);
     
         echo '<div class="updated"><p>Record updated successfully!</p></div>';
-    } else if (isset($_POST['billtracker_delete'])) {
+    } else if (isset($_POST['tracker_delete'])) {
         $delete_index = intval($_POST['delete_index']);
         $bills = (get_option('billtracker_data', []));
         usort($bills, function ($a, $b) {
@@ -282,18 +493,18 @@ function display_bills() {
         '<tr class="name" style="">
             <td colspan="5" style="">' . esc_html(stripslashes($bill['name'])) . '</td>
         </tr>';
-        $output .= get_chamber_info("House", "house", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['house']);
-        $output .= get_chamber_info("Senate", "senate", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['senate']);
-        $output .= get_chamber_info("Passage", "passage", ['Passed Legislature', 'Governor\'s Desk', 'Governor Acted', 'Session Law'], $bill['passage']);
+        $output .= get_steps_info("House", "house", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['house']);
+        $output .= get_steps_info("Senate", "senate", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['senate']);
+        $output .= get_steps_info("Passage", "passage", ['Passed Legislature', 'Governor\'s Desk', 'Governor Acted', 'Session Law'], $bill['passage']);
     }
 
     $output .= '</tbody>';
     $output .= '</table>';
-    $output .= '<div><button class="download">Download Image</button></div>';
+    $output .= '<div class="bills"><button class="download">Download Image</button></div>';
     $output .= '
         <script>
             document.addEventListener("DOMContentLoaded", function () {
-                const downloadButton = document.querySelector("button.download");
+                const downloadButton = document.querySelector(".bills button.download");
 
                 downloadButton.addEventListener("click", function (event) {
                     htmlToImage.toJpeg(document.querySelector("table.bills tbody"), { quality: 0.95 })
@@ -308,6 +519,61 @@ function display_bills() {
         </script>';
 
     $output .= get_bills_css();
+
+    return $output;
+}
+
+
+function display_lawsuits() {
+    $lawsuits = get_option('lawsuittracker_data', []);
+
+    // Sort the lawsuits by the 'sort' field
+    usort($lawsuits, function ($a, $b) {
+        return $a['sort'] <=> $b['sort'];
+    });
+
+    $output = '<script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+
+    <table class="widefat fixed lawsuits" cellspacing="0" style="">';
+    $output .= '<tbody>';
+
+    // Loop through the lawsuits and add rows to the table
+    $category = "blank";
+    foreach ($lawsuits as $lawsuit) {
+        if ($category != $lawsuit['category']) {
+            $category = $lawsuit['category'];
+            $output .= '<tr class="category" style="">';
+            $output .= '<td colspan="5" style="">' . esc_html(stripslashes($category)) . '</td>';
+            $output .= '</tr>';
+        }
+        $output .=
+        '<tr class="name" style="">
+            <td colspan="5" style="">' . esc_html(stripslashes($lawsuit['name'])) . '</td>
+        </tr>';
+        $output .= get_steps_info("", "stage", ['Filed', 'In Court', 'Ruling Issued', 'Appealed', 'Resolved'], $lawsuit['stage']);
+    }
+
+    $output .= '</tbody>';
+    $output .= '</table>';
+    $output .= '<div class="lawsuits"><button class="download">Download Image</button></div>';
+    $output .= '
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const downloadButton = document.querySelector(".lawsuits button.download");
+
+                downloadButton.addEventListener("click", function (event) {
+                    htmlToImage.toJpeg(document.querySelector("table.lawsuits tbody"), { quality: 0.95 })
+                        .then(function (dataUrl) {
+                            var link = document.createElement("a");
+                            link.download = "gjl-lawsuits.jpeg";
+                            link.href = dataUrl;
+                            link.click();
+                        });
+                });
+            });
+        </script>';
+
+    $output .= get_lawsuits_css();
 
     return $output;
 }
@@ -341,7 +607,7 @@ function get_bills_css() {
         }
 
         table.bills tr.passage {
-            background-color:#FFeebb
+            background-color: #FFeebb
         }
 
         table.bills td {
@@ -355,7 +621,7 @@ function get_bills_css() {
             font-weight: normal;
         }
 
-        .stepper-item {
+        table.bills .stepper-item {
             align-items: center;
             display: flex;
             flex: 1;
@@ -363,7 +629,7 @@ function get_bills_css() {
             position: relative;
         }
 
-        .stepper-item::before {
+        table.bills .stepper-item::before {
             border-bottom: 2px solid #ccc;
             content: "";    
             position: absolute;
@@ -373,7 +639,7 @@ function get_bills_css() {
             z-index: 2;
         }
 
-        .stepper-item::after {
+        table.bills .stepper-item::after {
             border-bottom: 2px solid #ccc;
             content: "";
             position: absolute;
@@ -383,7 +649,7 @@ function get_bills_css() {
             z-index: 2;
         }
 
-        .stepper-item .step-counter {
+        table.bills .stepper-item .step-counter {
             align-items: center;
             background: #ccc;
             border-radius: 50%;
@@ -397,21 +663,21 @@ function get_bills_css() {
             z-index: 5;
         }
 
-        .stepper-item.active,
-        .stepper-item.completed {
+        table.bills .stepper-item.active,
+        table.bills .stepper-item.completed {
             font-weight: bold;
         }
 
-        .stepper-item.active .step-counter {
+        table.bills .stepper-item.active .step-counter {
             background-color: #FFBB43
         }
 
-        .stepper-item.completed .step-counter {
+        table.bills .stepper-item.completed .step-counter {
             background-color: #A21C1F;
             color: #FFF8D7;
         }
 
-        .stepper-item.completed::after {
+        table.bills .stepper-item.completed::after {
             position: absolute;
             content: "";
             border-bottom: 2px solid #A21C1F;
@@ -421,23 +687,132 @@ function get_bills_css() {
             z-index: 3;
         }
 
-        .stepper-item:first-child::before,
-        .stepper-item:last-child::after {
+        table.bills .stepper-item:first-child::before,
+        table.bills .stepper-item:last-child::after {
             content: none;
         }
     </style>';
     return $output;
 }
 
-function get_chamber_info($chamberName, $chamberClass, $chamberSteps, $chamberStatus) {
-    $output = '<tr class="'. $chamberClass .'" style="">
-            <td style="">'.$chamberName.'</td>
+function get_lawsuits_css() {
+    $output =
+    '<style>
+
+        table.lawsuits {
+            border-collapse: collapse;
+            min-width: 450px;
+            width: 100%;
+        }
+
+        table.lawsuits tr.category {
+            background-color:#444;
+            color: white;
+        }
+
+        table.lawsuits tr.name {
+            background-color:#A21C1F;
+            color:white;
+        }
+
+        table.lawsuits tr.stage {
+            background-color: #FFeebb
+        }
+
+        table.lawsuits td {
+            font-weight: bold;
+            padding: 8px;
+        }
+
+        table.lawsuits td .stepper-wrapper {
+            display: flex;
+            font-size:small;
+            font-weight: normal;
+        }
+
+        table.lawsuits .stepper-item {
+            align-items: center;
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            position: relative;
+        }
+
+        table.lawsuits .stepper-item::before {
+            border-bottom: 2px solid #ccc;
+            content: "";    
+            position: absolute;
+            left: -50%;
+            top: 15px;
+            width: 100%;
+            z-index: 2;
+        }
+
+        table.lawsuits .stepper-item::after {
+            border-bottom: 2px solid #ccc;
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 15px;
+            width: 100%;
+            z-index: 2;
+        }
+
+        table.lawsuits .stepper-item .step-counter {
+            align-items: center;
+            background: #ccc;
+            border-radius: 50%;
+            color: #666;
+            display: flex;    
+            height: 30px;
+            justify-content: center;
+            margin-bottom: 6px;
+            position: relative;
+            width: 30px;
+            z-index: 5;
+        }
+
+        table.lawsuits .stepper-item.active,
+        table.lawsuits .stepper-item.completed {
+            font-weight: bold;
+        }
+
+        table.lawsuits .stepper-item.active .step-counter {
+            background-color: #FFBB43
+        }
+
+        table.lawsuits .stepper-item.completed .step-counter {
+            background-color: #A21C1F;
+            color: #FFF8D7;
+        }
+
+        table.lawsuits .stepper-item.completed::after {
+            position: absolute;
+            content: "";
+            border-bottom: 2px solid #A21C1F;
+            width: 100%;
+            top: 15px;
+            left: 50%;
+            z-index: 3;
+        }
+
+        table.lawsuits .stepper-item:first-child::before,
+        table.lawsuits .stepper-item:last-child::after {
+            content: none;
+        }
+    </style>';
+    return $output;
+}
+
+function get_steps_info($name, $class, $steps, $status) {
+    $output = '<tr class="'. $class .'" style="">
+            <td style="">'.$name.'</td>
             <td colspan="4" style=";">
                 <div class="stepper-wrapper">';
-    for($i = 0; $i < sizeof($chamberSteps); $i++) {
-        $output .= '<div class="stepper-item '.($chamberStatus == $i + 1 ? 'active' : ($chamberStatus > $i + 1 ? 'completed' : '')).'">
+    for($i = 0; $i < sizeof($steps); $i++) {
+        $output .= '<div class="stepper-item '.($status == $i + 1 ? 'active' : ($status > $i + 1 ? 'completed' : '')).'">
                         <div class="step-counter">'.($i+1).'</div>
-                        <div class="step-name">'.$chamberSteps[$i].'</div>
+                        <div class="step-name">'.$steps[$i].'</div>
                     </div>';    
     }
 
@@ -448,5 +823,7 @@ function get_chamber_info($chamberName, $chamberClass, $chamberSteps, $chamberSt
 }
 
 add_shortcode('display_bills', 'display_bills');
+
+add_shortcode('display_lawsuits', 'display_lawsuits');
 
 
