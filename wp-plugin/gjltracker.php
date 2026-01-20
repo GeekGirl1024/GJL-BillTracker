@@ -283,8 +283,18 @@ function billtracker_admin_page() {
                     </td>
                 </tr>
                 <tr>
+                    <th><label for="stance">Stance</label></th>
+                    <td>
+                        <select name="stance" id="stance" required>
+                            <option value="">Select a Stance</option>
+                            <option value="pro" <?php echo isset($bill_to_edit) && key_exists('stance', $bill_to_edit) && $bill_to_edit['stance'] === "pro" ? 'selected' : ''; ?> >Pro</option>
+                            <option value="con" <?php echo isset($bill_to_edit) && key_exists('stance', $bill_to_edit) &&$bill_to_edit['stance'] === "con" ? 'selected' : ''; ?>>Con</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="url">URL</label></th>
-                    <td><input type="url" name="url" id="url" value="<?php echo isset($bill_to_edit) ? esc_attr($bill_to_edit['url']) : ''; ?>" placeholder="Enter a URL"></td>
+                    <td><input type="url" name="url" id="url" value="<?php echo isset($bill_to_edit) ? esc_attr($bill_to_edit['url']) : ''; ?>" placeholder="Enter a URL" required></td>
                 </tr>
                 <tr>
                     <th><label for="house">House</label></th>
@@ -314,6 +324,7 @@ function billtracker_admin_page() {
                 <tr>
                     <th>Name</th>
                     <th>Category</th>
+                    <th>Stance</th>
                     <th>Url</th>
                     <th>House</th>
                     <th>Senate</th>
@@ -329,6 +340,7 @@ function billtracker_admin_page() {
                     <tr>
                         <td><?php echo esc_html(stripslashes($row['name'])); ?></td>
                         <td><?php echo esc_html(stripslashes($row['category'])); ?></td>
+                        <td><?php echo esc_html(stripslashes(key_exists('stance', $row) ? $row['stance'] : "")); ?></td>
                         <td><a href="<?php echo esc_url($row['url']); ?>" target="_blank"><?php echo esc_html($row['url']); ?></a></td>
                         <td><?php echo esc_html($row['house']); ?></td>
                         <td><?php echo esc_html($row['senate']); ?></td>
@@ -425,10 +437,16 @@ function billtracker_admin_do_updates() {
             $category = sanitize_text_field($_POST['new_category']);
         }
 
+        $stance = sanitize_text_field($_POST['stance']);
+        if(!($stance == "pro" || $stance == "con")) {
+            $stance = "";
+        }
+
         // Add the new bill to the array
         $bills[] = [
             'name' => sanitize_text_field($_POST['name']),
             'category' => $category,
+            'stance' => $stance,
             'url' => esc_url_raw($_POST['url']),
             'house' => intval($_POST['house']),
             'senate' => intval($_POST['senate']),
@@ -450,9 +468,16 @@ function billtracker_admin_do_updates() {
         if ($category === 'new') {
             $category = sanitize_text_field($_POST['new_category']);
         }
+
+        $stance = sanitize_text_field($_POST['stance']);
+        if(!($stance == "pro" || $stance == "con")) {
+            $stance = "";
+        }
+
         $bills[$edit_index] = [
             'name' => sanitize_text_field($_POST['name']),
             'category' => $category,
+            'stance' => $stance,
             'url' => esc_url_raw($_POST['url']),
             'house' => intval($_POST['house']),
             'senate' => intval($_POST['senate']),
@@ -510,9 +535,14 @@ function display_bills() {
 
         $name_link = !empty($bill['url']) ? '<a href="' . esc_url($bill['url']) . '" target="_blank">' . esc_html(stripslashes($bill['name'])) . '</a>' : esc_html(stripslashes($bill['name']));
 
+        if(!array_key_exists('stance', $bill)) {
+            $bill["stance"] = "";
+        }
+        $stance = "<span class='stance ".esc_html(stripslashes($bill['stance']))."'>".esc_html(stripslashes($bill['stance']))."</span>";
+
         $output .=
         '<tr class="name" style="">
-            <td colspan="5" style="">' . $name_link . '</td>
+            <td colspan="5" style="">' . $name_link . $stance . '</td>
         </tr>';
         $output .= get_steps_info("House", "house", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['house']);
         $output .= get_steps_info("Senate", "senate", ['Introduced', 'In Committee', 'On Floor', 'Passed'], $bill['senate']);
@@ -624,6 +654,27 @@ function get_bills_css() {
         table.bills tr.name a {
             color:white;
             text-decoration: underline;
+        }
+
+        table.bills tr.name .stance {
+            float: right;
+            border-style: solid;
+            border-radius: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            text-transform: uppercase;
+        }
+
+        table.bills tr.name .pro {
+            background: lightgreen;
+            color: green;
+            border-color: green;
+        }
+
+        table.bills tr.name .con {
+            background: pink;
+            color: red;
+            border-color: red;
         }
 
         table.bills tr.house {
