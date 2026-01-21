@@ -3,7 +3,7 @@
  * Plugin Name: GJL Tracker Plugin
  * Plugin URI: https://github.com/GeekGirl1024/GJL-BillTracker
  * Description: A Wordpress plugin to display Bills or Lawsuits Information.
- * Version: 1.1
+ * Version: 1.2
  * Author: Sophia Lee
  * Author URI: https://www.sophialee.dev
  * License: MIT License
@@ -538,7 +538,7 @@ function display_bills() {
         if(!array_key_exists('stance', $bill)) {
             $bill["stance"] = "";
         }
-        $stance = "<span class='stance ".esc_html(stripslashes($bill['stance']))."'>".esc_html(stripslashes($bill['stance']))."</span>";
+        $stance = "<div class='stance ".esc_html(stripslashes($bill['stance']))."'>".esc_html(stripslashes($bill['stance']))."</div>";
 
         $output .=
         '<tr class="name" style="">
@@ -637,7 +637,9 @@ function get_bills_css() {
 
         table.bills {
             border-collapse: collapse;
-            min-width: 450px;
+            font-size: medium;
+            max-width: 800px;
+            min-width: 300px;
             width: 100%;
         }
 
@@ -649,20 +651,27 @@ function get_bills_css() {
         table.bills tr.name {
             background-color:#A21C1F;
             color:white;
+            line-height: normal;
         }
 
         table.bills tr.name a {
             color:white;
+            display:block;
+            float: left;
             text-decoration: underline;
+            width: calc(100% - 80px);
         }
 
         table.bills tr.name .stance {
             float: right;
+            font-size: small;
             border-style: solid;
             border-radius: 10px;
             padding-left: 10px;
             padding-right: 10px;
+            text-align: center;
             text-transform: uppercase;
+            width: 50px;
         }
 
         table.bills tr.name .pro {
@@ -696,8 +705,14 @@ function get_bills_css() {
 
         table.bills td .stepper-wrapper {
             display: flex;
-            font-size:small;
+            font-size: small;
             font-weight: normal;
+        }
+
+        @media screen and (max-width: 500px) {
+            table.bills td .stepper-wrapper {
+                font-size: x-small;
+            }
         }
 
         table.bills .stepper-item {
@@ -705,7 +720,9 @@ function get_bills_css() {
             display: flex;
             flex: 1;
             flex-direction: column;
+            padding-right: 5px;
             position: relative;
+            text-align: center;
         }
 
         table.bills .stepper-item::before {
